@@ -5,7 +5,18 @@
 
 #define BUFSIZE 4096
 #define COUNT 64
+#define BLACK "\x1b[30m"
+#define RED "\x1b[31m"
+#define GREEN "\x1b[32m"
+#define YELLOW "\x1b[33m"
+#define BLUE "\x1b[34m"
+#define MAGENTA "\x1b[35m"
+#define CYAN "\x1b[36m"
+#define WHITE "\x1b[37m"
+#define NORMAL "\x1b[m"
+
 #include <stdio.h>
+#include <conio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
@@ -48,11 +59,22 @@ char *builtins[] =
     "dir"
 };
 
-//built in commands function definitions
+
+
+
+//function declarations in the order that they appear.
+void shell_loop(char path[]);
+int print_entry(unsigned short st_mode);
+int builtin_count(void);
 void cd(char **commands);
 void help();
 void exit_();
 void dir(char **commands);
+char *join_strings(char **strings, char *delimiters);
+char *read_line(void);
+char **parse_line(char *line);
+int launch(char **command);
+void execute(char **commands);
 
 //just an array of built in functions
 void (*builtin_func[])(char **) =
@@ -62,16 +84,6 @@ void (*builtin_func[])(char **) =
     &exit_,
     &dir
 };
-
-//function declarations in the order that they appear.
-int print_entry(unsigned short st_mode);
-int builtin_count();
-char *join_strings(char **strings, char *delimiters);
-char *read_line();
-char **parse_line(char *line);
-int launch(char **command);
-void execute(char **commands);
-void shell_loop(char path[]);
 
 int main()
 {
@@ -110,9 +122,16 @@ void shell_loop(char path[])
         }
 
         //open folder for commands like dir
+        folder = opendir(path);
+        if(!folder)
+        {
+            perror("Directory error");
+            _getch();
+            exit(EXIT_FAILURE);
+        }
         
         printf("\n%s>", path);
-        line = read_line(line);
+        line = read_line();
         command = parse_line(line);
 
         if(command)
@@ -203,13 +222,16 @@ void exit_()
 
 void dir(char **commands)
 {
-    char tempPath[PATH_MAX];
-
-    //temppath is used to obtain absolute path from relative path.
+    folder = opendir(path);
+    if(folder == NULL)
+    {
+        error = CWD_ACCESS_ERROR;
+        return;
+    }
 
     //executes if only 'dir' was given
     if(!commands[1])
-    {
+    {   
         printf("\nDirectory of %s\n\n", path);
 
         while(entry = readdir(folder))
@@ -232,6 +254,7 @@ void dir(char **commands)
     }
     else
     {
+        char tempPath[PATH_MAX];
         //executes if 'dir <path>' was given
 
         //convert to absolute path
@@ -275,6 +298,11 @@ char *join_strings(char **strings, char *delimiters)
     int i = 1;
 
     joinedStr = realloc(NULL, strlen(strings[0]) + 1);
+    if(!joinedStr)
+    {
+        error = MEMORY_ERROR;
+        return NULL;
+    }
     strcpy(joinedStr, strings[0]);
 
     if (strings[0] == NULL) {
@@ -311,6 +339,7 @@ char *read_line()
         if(c == '\n')
         {
             buffer[i] = '\0';
+
             return buffer;
             break;
         }
@@ -335,8 +364,6 @@ char *read_line()
 
 char **parse_line(char *line)
 {
-    //
-
     int i = 0, j = 0, bufsize = COUNT, len, pos;
     char **tokens = malloc(bufsize * sizeof(char *));
     char *token;
