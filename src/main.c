@@ -73,8 +73,9 @@ void dir(char **commands);
 char *join_strings(char **strings, char *delimiters);
 char *read_line(void);
 char **parse_line(char *line);
-int launch(char **command);
+int launch(char **commands);
 void execute(char **commands);
+void check_if_cmd(char *command);
 
 //just an array of built in functions
 void (*builtin_func[])(char **) =
@@ -87,7 +88,7 @@ void (*builtin_func[])(char **) =
 
 int main()
 {
-    printf("Shell starting...\n\n");
+    printf("\aShell starting...\n\n");
 
     if(!_getcwd(path, PATH_MAX))
     {
@@ -99,7 +100,7 @@ int main()
     if(!folder)
     {
         perror("Directory error");
-        getchar();
+        _getch();
         exit(EXIT_FAILURE);
     }
 
@@ -144,9 +145,9 @@ void shell_loop(char path[])
 
     } while (!error);
 
-    printf("\n\nFATAL ERROR: ");
+    printf("\n\n\aFATAL ERROR: ");
     printf(error_codes[error]);
-    getchar();
+    _getch();
 }
 
 //functions
@@ -155,11 +156,12 @@ int print_entry(unsigned short st_mode)
 {
     if(S_ISDIR(fileStat.st_mode))
     {
-        printf("%-12s", "<DIR>");
+        printf("%-30s", "<DIR>");
     }
     else
     {
-        printf("%-12lld", fileStat.st_size);
+        printf("%lld %s", fileStat.st_size, "bytes");
+        printf("\t\t\t");
         totalsize += fileStat.st_size;
         filecount++;
     }
@@ -238,7 +240,7 @@ void dir(char **commands)
         {
             //get name of entry
             stat(entry->d_name, &fileStat);
-            printf("%-30s", entry->d_name);
+            printf("%-50s", entry->d_name);
 
             print_entry(fileStat.st_mode);
 
@@ -400,23 +402,30 @@ char **parse_line(char *line)
         tokens[i] = token;
         i++;
         tokens[i] = NULL;
+
+        //highlight the first command if from
+
+        /**/
+
         return tokens;
     }
-    if(!strcmp(token, "cd."))
+    if(token != NULL && !strcmp(token, "cd."))
     {
         tokens[i] = "cd";
         i++;
         tokens[i] = ".";
         i++;
         tokens[i] = NULL;
+        token = NULL;
     }
-    if(!strcmp(token, "cd.."))
+    if(token != NULL && !strcmp(token, "cd.."))
     {        
         tokens[i] = "cd";
         i++;
         tokens[i] = "..";
         i++;
         tokens[i] = NULL;
+        token = NULL;
     }
 
     while(token != NULL)
@@ -440,9 +449,9 @@ char **parse_line(char *line)
     return tokens;
 }
 
-int launch(char **command)
+int launch(char **commands)
 {
-    char *cmd = join_strings(command, " ");
+    char *cmd = join_strings(commands, " ");
     
 
     STARTUPINFO startupInfo = 
@@ -462,12 +471,12 @@ int launch(char **command)
     } 
     else
     {
-        if(!command[1])
+        if(!commands[1])
         {
             printf("Enter a valid command.");
             return 1;
         }
-        printf("Error running %s (%d)", command[1], GetLastError());
+        printf("Error running %s (%d)", commands[1], GetLastError());
         return 1;
     }
 }
