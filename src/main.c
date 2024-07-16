@@ -88,7 +88,7 @@ void (*builtin_func[])(char **) =
 
 int main()
 {
-    printf("\aShell starting...\n\n");
+    printf("Shell starting...\n\n");
 
     if(!_getcwd(path, PATH_MAX))
     {
@@ -99,7 +99,7 @@ int main()
 
     if(!folder)
     {
-        perror("Directory error");
+        perror("Directory error\a");
         _getch();
         exit(EXIT_FAILURE);
     }
@@ -126,7 +126,7 @@ void shell_loop(char path[])
         folder = opendir(path);
         if(!folder)
         {
-            perror("Directory error");
+            perror("Directory error\a");
             _getch();
             exit(EXIT_FAILURE);
         }
@@ -178,12 +178,12 @@ void cd(char **commands)
 
     if(!commands[1])
     {
-        printf("\nUsage: 'cd <folder>' to change directory. For example, 'cd test'.\n");
+        printf("\nUsage: 'cd <folder>' to change directory. For example, 'cd test'.\n\a");
         return;
     }
     if(_chdir(commands[1]))
     {
-        perror("Directory change error");
+        perror("Directory change error\a");
         return;
     }
 
@@ -262,7 +262,7 @@ void dir(char **commands)
         //convert to absolute path
         if(!_fullpath(tempPath, commands[1], PATH_MAX))
         {
-            perror("Absolute path error");
+            perror("Absolute path error\a");
             return;
         }
 
@@ -274,7 +274,7 @@ void dir(char **commands)
             givenFolder = opendir(tempPath);
             if(!givenFolder)
             {
-                perror("dir");
+                perror("dir\a");
                 return;
             }
         }
@@ -330,7 +330,7 @@ char *read_line()
 
     if(!buffer)
     {
-        printf("Allocation error");
+        printf("Allocation error\a");
         return NULL;
     }
 
@@ -357,7 +357,7 @@ char *read_line()
             buffer = realloc(buffer, buf_size);
             if(!buffer)
             {
-                printf("Allocation error");
+                printf("Allocation error\a");
                 return NULL;
             }
         }
@@ -372,7 +372,7 @@ char **parse_line(char *line)
 
     if(tokens == NULL)
     {
-        perror("malloc tokens");
+        perror("malloc tokens\a");
         error = MEMORY_ERROR;
         return NULL;
     }
@@ -394,7 +394,7 @@ char **parse_line(char *line)
             tokens = realloc(tokens, bufsize * sizeof(char*));
             if(!tokens)
             {
-                perror("Allocation error");
+                perror("Allocation error\a");
                 return NULL;
             }
         }
@@ -402,10 +402,6 @@ char **parse_line(char *line)
         tokens[i] = token;
         i++;
         tokens[i] = NULL;
-
-        //highlight the first command if from
-
-        /**/
 
         return tokens;
     }
@@ -439,7 +435,7 @@ char **parse_line(char *line)
             tokens = realloc(tokens, bufsize * sizeof(char*));
             if(!tokens)
             {
-                perror("Allocation error");
+                perror("Allocation error\a");
                 return NULL;
             }
         }
@@ -473,10 +469,10 @@ int launch(char **commands)
     {
         if(!commands[1])
         {
-            printf("Enter a valid command.");
+            printf("Enter a valid command.\a");
             return 1;
         }
-        printf("Error running %s (%d)", commands[1], GetLastError());
+        printf("Error running %s (%d)\a", commands[1], GetLastError());
         return 1;
     }
 }
