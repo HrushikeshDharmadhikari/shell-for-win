@@ -13,6 +13,9 @@
 #include <sys\stat.h>
 #include <time.h>
 
+#define BUFSIZE 2
+#define COUNT 64
+
 DIR *folder, *given_folder;
 char path[PATH_MAX];
 int error = 0, filecount = 0;
@@ -20,10 +23,12 @@ long long int totalsize = 0;
 
 enum error
 {
-    //the names NO_ERROR and NOERROR were defined already, so had to use this.
-
     NOTHING,
+
+    //When it cannot access the current working directory somehow
     CWD_ACCESS_ERROR,
+
+    //When attempts to allocate memory fail
     MEMORY_ERROR
 };
 
