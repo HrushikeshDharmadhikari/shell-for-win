@@ -8,11 +8,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Build and Debug",
+            "name": "C/C++: gcc.exe build active file",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}\\bin\\main.exe",
-              // There I have got error Property keys must be doublequotedjsonc
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

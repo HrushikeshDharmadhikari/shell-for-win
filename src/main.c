@@ -1,19 +1,6 @@
 /*
-* A 'simple' shell program in C for Windows 8 and onward oses.
+** A 'simple' shell program in C for Windows 8 and onward OSes.
 */
-
-
-#define BUFSIZE 4096
-#define COUNT 64
-#define BLACK "\x1b[30m"
-#define RED "\x1b[31m"
-#define GREEN "\x1b[32m"
-#define YELLOW "\x1b[33m"
-#define BLUE "\x1b[34m"
-#define MAGENTA "\x1b[35m"
-#define CYAN "\x1b[36m"
-#define WHITE "\x1b[37m"
-#define NORMAL "\x1b[m"
 
 #include <stdio.h>
 #include <conio.h>
@@ -26,7 +13,7 @@
 #include <sys\stat.h>
 #include <time.h>
 
-DIR *folder, *givenFolder;
+DIR *folder, *given_folder;
 char path[PATH_MAX];
 int error = 0, filecount = 0;
 long long int totalsize = 0;
@@ -34,6 +21,7 @@ long long int totalsize = 0;
 enum error
 {
     //the names NO_ERROR and NOERROR were defined already, so had to use this.
+
     NOTHING,
     CWD_ACCESS_ERROR,
     MEMORY_ERROR
@@ -59,13 +47,12 @@ char *builtins[] =
     "dir"
 };
 
-
-
-
 //function declarations in the order that they appear.
 void shell_loop(char path[]);
 int print_entry(unsigned short st_mode);
 int builtin_count(void);
+char *prepend(char *prepend, char *str, size_t size);
+char *case_correct_path(char *path);
 void cd(char **commands);
 void help();
 void exit_();
@@ -75,7 +62,6 @@ char *read_line(void);
 char **parse_line(char *line);
 int launch(char **commands);
 void execute(char **commands);
-void check_if_cmd(char *command);
 
 //just an array of built in functions
 void (*builtin_func[])(char **) =
@@ -172,6 +158,117 @@ int builtin_count()
     return sizeof(builtins) / sizeof(char*);
 }
 
+char *prepend(char *prepend, char *str, size_t maxLength)
+{
+    int length = strlen(prepend);
+    char *buffer = malloc(length + 1);
+
+    strncpy(buffer, prepend, length);
+
+    //contents of str are shifted by length of prepend string
+    memmove(str + length, str, maxLength);
+    memmove(str, prepend, maxLength);
+
+    free(prepend);
+}
+
+char *case_correct_path(char *path)
+{
+    int parent_dirs_count = 50, length_of_element = PATH_MAX, i = 0;
+    char **parent_dirs = (char**)malloc(parent_dirs_count * sizeof(char*)), *buffer = (char*)malloc(PATH_MAX * sizeof(char));
+
+    HANDLE handle;
+    WIN32_FIND_DATA file_data;
+
+    if(parent_dirs == NULL)
+    {
+        perror("case_correct_path memory error");
+        return NULL;
+    }
+    
+    strncpy(buffer, path, PATH_MAX);
+    handle = FindFirstFileA(buffer, &file_data);
+
+    if(handle == INVALID_HANDLE_VALUE)
+    {
+        return NULL;
+    }
+
+    parent_dirs[i] = malloc(length_of_element * sizeof(char));
+    if(parent_dirs[i] == NULL)
+    {
+        perror("case_correct_path memory error");
+        return NULL;
+    }
+
+    strncpy(parent_dirs[i], file_data.cFileName, length_of_element);
+
+    i++;
+
+    while(1)
+    {
+        _chdir("..");
+        _getcwd(buffer, PATH_MAX);
+
+        handle = FindFirstFileA(buffer, &file_data);
+
+        if(handle == INVALID_HANDLE_VALUE)
+        {
+            break;
+        }
+
+        parent_dirs[i] = malloc(length_of_element * sizeof(char));
+        if(parent_dirs[i] == NULL)
+        {
+            perror("case_correct_path memory error");
+            return NULL;
+        }
+
+        strncpy(parent_dirs[i], file_data.cFileName, length_of_element);
+
+        i++;
+
+        if(i >= parent_dirs_count)
+        {
+            parent_dirs_count += 50;
+            parent_dirs = realloc(parent_dirs, parent_dirs_count);
+
+            if(parent_dirs == NULL)
+            {
+                perror("case_correct_path memory error");
+                return NULL;
+            }
+        }
+    }
+
+    parent_dirs = realloc(parent_dirs, i * sizeof(char*));
+
+    int j = i - 1;
+    while(j >= 0)
+    {
+        if(j != i - 1)
+        {
+            strncat(buffer, "\\", 2);
+        }
+        strncat(buffer, parent_dirs[j], length_of_element);
+        j--;
+    }
+
+    j = 0;
+    while(j < i)
+    {
+        free(parent_dirs[j]);
+        j++;
+    }
+
+    free(parent_dirs);
+    FindClose(handle);
+
+    _chdir(buffer);
+
+    return buffer;
+}
+
 void cd(char **commands)
 {
     char *buffer;
@@ -181,6 +278,7 @@ void cd(char **commands)
         printf("\nUsage: 'cd <folder>' to change directory. For example, 'cd test'.\n\a");
         return;
     }
+    
     if(_chdir(commands[1]))
     {
         perror("Directory change error\a");
@@ -199,17 +297,36 @@ void cd(char **commands)
         }
         return;
     }
-    strncpy(path, buffer, PATH_MAX);
+
+    buffer = case_correct_path(buffer);
+
+    if(buffer != NULL)
+    {
+        strncpy(path, buffer, PATH_MAX);
+    }
+
 }
 
 void help()
 {
-    printf("\n%-30s :- Changes directory to specified directory (cd.. for going to parent directory).", "cd <directory-name>");
-    printf("\n%-30s :- Shows what is in the current directory", "dir");
-    printf("\n%-30s :- Shows what is in the specified directory", "dir <directory-name>");
-    printf("\n%-30s :- Exits the shell.\n", "exit");
+    FILE *help = fopen("help.txt", "r");
 
-    printf("\nGo to GitHub for source code (Hrushikesh Dharmadhikari).\n");
+    if(help == NULL)
+    {
+        perror("Cannot get help.txt");
+        return;
+    }
+
+    char buffer;
+
+    printf("\n");
+
+    while((buffer = fgetc(help)) != EOF)
+    {
+        printf("%c", buffer);
+    }
+
+    printf("\n");
 }
 
 void exit_()
@@ -256,32 +373,45 @@ void dir(char **commands)
     }
     else
     {
-        char tempPath[PATH_MAX];
+        char *fullPath = malloc(PATH_MAX * sizeof(char));
+        char *buffer = malloc(PATH_MAX * sizeof(char));
+
+        strncpy(buffer, commands[1], strlen(commands[1]));
+
         //executes if 'dir <path>' was given
 
         //convert to absolute path
-        if(!_fullpath(tempPath, commands[1], PATH_MAX))
+        if(!_fullpath(fullPath, commands[1], PATH_MAX))
         {
             perror("Absolute path error\a");
             return;
         }
 
-        givenFolder = opendir(tempPath);
-
-        if(!givenFolder)
+        fullPath = case_correct_path(fullPath);
+        if(fullPath == NULL)
         {
-            strncpy(tempPath, commands[1], PATH_MAX);
-            givenFolder = opendir(tempPath);
-            if(!givenFolder)
+            perror("case_correct_path");
+            strncpy(fullPath, buffer, PATH_MAX);
+        }
+
+        strncpy(buffer, commands[1], strlen(commands[1]));
+
+        given_folder = opendir(buffer);
+
+        if(!given_folder)
+        {
+            strncpy(buffer, commands[1], strlen(commands[1]));
+            given_folder = opendir(buffer);
+            if(!given_folder)
             {
                 perror("dir\a");
                 return;
             }
         }
 
-        printf("\nDirectory of %s\n\n", tempPath);
+        printf("\nDirectory of %s\n\n", fullPath);
 
-        while(entry = readdir(givenFolder))
+        while(entry = readdir(given_folder))
         {
             stat(entry->d_name, &fileStat);
             printf("%s\n", entry->d_name);
@@ -341,6 +471,8 @@ char *read_line()
         if(c == '\n')
         {
             buffer[i] = '\0';
+
+            buffer = strlwr(buffer);
 
             return buffer;
             break;
@@ -469,7 +601,7 @@ int launch(char **commands)
     {
         if(!commands[1])
         {
-            printf("Enter a valid command.\a");
+            printf("Enter a valid command.\a\n");
             return 1;
         }
         printf("Error running %s (%d)\a", commands[1], GetLastError());
@@ -484,9 +616,11 @@ void execute(char **commands)
         return;
     }
 
+    char *input = strlwr(commands[0]);
+
     for(int i = 0; i < builtin_count(); i++)
     {
-        if(!strcmp(commands[0], builtins[i]))
+        if(!strcmp(input, builtins[i]))
         {
             return (*builtin_func[i])(commands);
         }
