@@ -1,6 +1,0 @@
-cd <directory-name>            :- Changes directory to specified directory (cd.. for going to parent directory).
-dir                            :- Shows what is in the current directory
-dir <directory-name>           :- Shows what is in the specified directory
-exit                           :- Exits the shell.
-
-Go to GitHub for source code (Hrushikesh Dharmadhikari).
